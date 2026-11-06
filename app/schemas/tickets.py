@@ -1,20 +1,22 @@
-from pydantic import BaseModel, Field
+from typing import Literal
+from pydantic import Field
+from app.schemas.base import InputModel
 
+Category = Literal["General", "Hardware", "Software", "Network"]
+Priority = Literal["Low", "Medium", "High", "Critical"]
+Status = Literal["Open", "In Progress", "Resolved", "Closed", "Cancelled"]
 
-class TicketIn(BaseModel):
-    title: str = Field(min_length=3)
-    description: str
-    category: str = "General"
-    priority: str = "Medium"
+class TicketIn(InputModel):
+    title: str = Field(min_length=3, max_length=160)
+    description: str = Field(min_length=10, max_length=10000)
+    category: Category = "General"
+    priority: Priority = "Medium"
 
+class StatusIn(InputModel):
+    status: Status
 
-class StatusIn(BaseModel):
-    status: str
+class AssignIn(InputModel):
+    assignee_id: int = Field(gt=0)
 
-
-class AssignIn(BaseModel):
-    assignee_id: int
-
-
-class CommentIn(BaseModel):
-    body: str = Field(min_length=1)
+class CommentIn(InputModel):
+    body: str = Field(min_length=1, max_length=5000)

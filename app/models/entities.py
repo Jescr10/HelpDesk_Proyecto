@@ -1,4 +1,5 @@
 """SQLAlchemy entities: persistence representation of the HelpDesk domain."""
+from app.core.time import utcnow
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, Text
@@ -28,7 +29,7 @@ class Ticket(Base):
     status: Mapped[str] = mapped_column(String(30), default="Open")
     requester_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     assignee_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     due_at: Mapped[datetime] = mapped_column(DateTime)
     requester: Mapped[User] = relationship(User, foreign_keys=[requester_id])
     assignee: Mapped[User | None] = relationship(User, foreign_keys=[assignee_id])
@@ -41,7 +42,7 @@ class Comment(Base):
     ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id"))
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     body: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     author: Mapped[User] = relationship(User)
 
 
@@ -53,7 +54,7 @@ class History(Base):
     actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     event_type: Mapped[str] = mapped_column(String(50))
     detail: Mapped[str] = mapped_column(String(255))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     actor: Mapped[User] = relationship(User)
 
 
@@ -65,4 +66,4 @@ class Article(Base):
     body: Mapped[str] = mapped_column(Text)
     category: Mapped[str] = mapped_column(String(50))
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
