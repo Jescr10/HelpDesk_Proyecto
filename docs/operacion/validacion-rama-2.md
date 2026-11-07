@@ -19,6 +19,9 @@ Se importó `developer.zip` como referencia de implementación de las semanas 7 
 ## Ajustes sobre la referencia
 
 - Dependencia `tzdata` para que las zonas IANA funcionen en Windows.
+- Tiempo de conexión PostgreSQL limitado a 3 segundos para evitar esperas indefinidas con la base apagada.
+- Respaldos privados con ACL de Windows antes de escribir datos (en Linux se mantiene `0600`).
+- Pruebas de Node con salida TAP explícita; las pruebas POSIX de `tzset` se ejecutan en Linux.
 - Paquete `tests` explícito para evitar colisiones de importación con otros paquetes instalados.
 - README con repositorio correcto, rama de entrega y pasos para PowerShell.
 - CI con PostgreSQL + pgvector, JavaScript, suite completa y comprobación Docker.

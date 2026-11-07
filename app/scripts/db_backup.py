@@ -56,6 +56,28 @@ def _looks_like_a_dump(path: Path) -> bool:
         return handle.read(len(DUMP_MAGIC)) == DUMP_MAGIC
 
 
+def _protect_windows_backup(path: Path) -> None:
+    """Limit an empty backup to the current Windows identity before writing data."""
+    if os.name != "nt":
+        return
+    script = """
+$ErrorActionPreference = 'Stop'
+$backupPath = $env:HELPDESK_BACKUP_PATH
+$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+$acl = [System.IO.File]::GetAccessControl($backupPath)
+$acl.SetAccessRuleProtection($true, $false)
+foreach ($rule in @($acl.Access)) { $acl.RemoveAccessRuleSpecific($rule) }
+$rule = [System.Security.AccessControl.FileSystemAccessRule]::new($sid, 'FullControl', 'Allow')
+$acl.AddAccessRule($rule)
+[System.IO.File]::SetAccessControl($backupPath, $acl)
+"""
+    subprocess.run(
+        ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+        env={**os.environ, "HELPDESK_BACKUP_PATH": str(path.resolve())},
+        check=True, capture_output=True, timeout=30,
+    )
+
+
 def backup(
     output_dir: Path,
     *,
@@ -74,10 +96,11 @@ def backup(
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
         with os.fdopen(descriptor, "wb") as handle:
+            _protect_windows_backup(path)
             runner(_compose(project, "sh", "-c", DUMP_COMMAND), stdout=handle, check=True)
         if not _looks_like_a_dump(path):
             raise BackupError(f"{path.name} no es un respaldo valido (falta la marca PGDMP); revisa 'docker compose ps'.")
-    except (BackupError, subprocess.CalledProcessError, OSError) as error:
+    except (BackupError, subprocess.SubprocessError, OSError) as error:
         path.unlink(missing_ok=True)
         if isinstance(error, BackupError):
             raise

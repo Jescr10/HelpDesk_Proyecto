@@ -49,7 +49,6 @@ def create_app_engine(database_url: str) -> Engine:
         database_url,
         echo=False,
         connect_args={"options": f"-c timezone={get_app_timezone()}", "connect_timeout": 3},
-        pool_pre_ping=True,
     )
 
 

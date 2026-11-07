@@ -214,6 +214,8 @@ uv run python -m app.scripts.db_backup backup                              # bac
 uv run python -m app.scripts.db_backup restore backups/ARCHIVO.dump --yes  # REEMPLAZA los datos actuales
 ```
 
+En Linux se crean con permiso `0600`; en Windows se aplica una ACL exclusiva para el usuario actual antes de escribir. Si no se pueden proteger, la operación falla sin guardar datos.
+
 Los respaldos no se suben a Git (`backups/`, `*.dump`). Procedimiento completo, prueba de humo y reversa: `docs/operacion/checklist_operativa.md`.
 
 ### Si algo falla: diagnostico entre capas

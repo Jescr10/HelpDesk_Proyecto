@@ -20,9 +20,9 @@ WORKDIR /srv/helpdesk
 # Copio SOLO los archivos de dependencias antes que el codigo: mientras pyproject.toml y uv.lock no cambien,
 # Docker reutiliza esta capa y no vuelve a descargar nada cuando edito un archivo de app/.
 COPY pyproject.toml uv.lock ./
-# --frozen: instala EXACTAMENTE lo que dice uv.lock (si el lock no coincide, falla en vez de actualizar).
+# --locked: verifica que pyproject.toml y uv.lock coincidan antes de instalar.
 # --no-dev: sin pytest. --no-install-project: el proyecto no es un paquete instalable; el codigo se copia abajo.
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --locked --no-dev --no-install-project
 
 # ---- etapa 2: imagen de ejecucion ------------------------------------------------------------------------
 FROM python:3.14-slim

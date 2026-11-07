@@ -30,6 +30,8 @@ def wall_clock(zone_name: str) -> datetime:
 @pytest.fixture
 def machine_zone(monkeypatch):
     """Cambia la zona del PROCESO (variable TZ) y la restaura al terminar."""
+    if not hasattr(time, "tzset"):
+        pytest.skip("Cambiar la zona del proceso con tzset requiere POSIX; se verifica en CI Linux")
     def use(zone_name: str) -> None:
         monkeypatch.setenv("TZ", zone_name)
         time.tzset()

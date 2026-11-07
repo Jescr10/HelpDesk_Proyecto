@@ -45,6 +45,8 @@ jobs:
           curl --fail http://localhost:8017/api/health
           curl --fail http://localhost:8017/app/
           uv run python -m app.scripts.db_backup backup --project helpdesk-ci
+          uv run python -m app.scripts.db_backup restore backups/*.dump --yes --project helpdesk-ci
+          curl --fail http://localhost:8017/api/health
           docker compose -p helpdesk-ci down -v
       - uses: actions/upload-artifact@v4
         if: always()

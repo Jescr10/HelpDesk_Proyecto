@@ -8,6 +8,8 @@ verifico a mano en el proyecto desechable y queda documentado en docs/operacion/
 from __future__ import annotations
 
 import stat
+import os
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -71,7 +73,25 @@ def test_backup_file_is_private_to_the_owner(tmp_path):
     """22/10/2026 - El archivo queda con permiso 600 porque contiene hashes de contrasenas."""
     path = db_backup.backup(tmp_path, runner=FakeRunner())
 
-    assert stat.S_IMODE(path.stat().st_mode) == 0o600  # lleva hashes de contrasenas
+    if os.name == "nt":
+        script = """
+$ErrorActionPreference = 'Stop'
+$acl = [System.IO.File]::GetAccessControl($env:HELPDESK_BACKUP_PATH)
+$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+if (-not $acl.AreAccessRulesProtected) { exit 1 }
+$rules = @($acl.Access)
+if ($rules.Count -ne 1) { exit 2 }
+if ($rules[0].IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value -ne $sid) { exit 3 }
+if ($rules[0].AccessControlType -ne 'Allow') { exit 4 }
+"""
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+            env={**os.environ, "HELPDESK_BACKUP_PATH": str(path.resolve())},
+            capture_output=True, timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+    else:
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
 
 
 def test_backup_creates_the_output_folder(tmp_path):
@@ -142,3 +162,14 @@ def test_main_backup_prints_the_path_and_returns_zero(tmp_path, capsys):
     assert code == 0
     assert str(tmp_path) in capsys.readouterr().out
     assert isinstance(next(tmp_path.iterdir()), Path)
+
+
+def test_backup_refuses_to_write_if_permissions_cannot_be_protected(tmp_path, monkeypatch):
+    runner = FakeRunner()
+    def deny(_):
+        raise OSError("cannot protect backup")
+    monkeypatch.setattr(db_backup, "_protect_windows_backup", deny)
+    with pytest.raises(db_backup.BackupError):
+        db_backup.backup(tmp_path, runner=runner)
+    assert runner.calls == []
+    assert list(tmp_path.iterdir()) == []

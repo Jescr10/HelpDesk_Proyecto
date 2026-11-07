@@ -296,7 +296,7 @@ def test_node_helper_tests_pass():
     # 22/10/2026 - Dejo que pytest dispare las pruebas de Node para que UNA sola orden (`uv run pytest`) cubra
     # todo lo que se puede automatizar. Sin Node se omiten; el resto del cliente se prueba igual.
     result = subprocess.run(
-        ["node", "--test", "tests/web/*.test.mjs"],
+        ["node", "--test", "--test-reporter=tap", *[str(p) for p in sorted((REPO_ROOT / "tests/web").glob("*.test.mjs"))]],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
