@@ -1,13 +1,17 @@
-from typing import Literal
-from pydantic import EmailStr, Field
-from app.schemas.base import InputModel
+"""22/10/2026 - Esquemas de autenticacion: lo que entra y sale en el login."""
 
-class Login(InputModel):
-    email: EmailStr
+from __future__ import annotations
+
+from pydantic import BaseModel, Field
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(min_length=1, max_length=120)
+    # Tope de largo: scrypt cuesta tiempo y memoria, no queremos que nos manden 10 MB.
     password: str = Field(min_length=1, max_length=128)
 
-class UserIn(InputModel):
-    email: EmailStr
-    name: str = Field(min_length=2, max_length=100)
-    role: Literal["requester", "technician", "supervisor", "administrator"] = "requester"
-    password: str = Field(min_length=10, max_length=128)
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int  # segundos

@@ -1,16 +1,53 @@
-name: Python integration tests
+name: HelpDesk verification
 on: [push, pull_request]
 permissions:
   contents: read
 jobs:
   tests:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: helpdesk
+          POSTGRES_PASSWORD: ci-test-only
+          POSTGRES_DB: helpdesk
+          TZ: America/Guatemala
+          PGTZ: America/Guatemala
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U helpdesk -d helpdesk"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://helpdesk:ci-test-only@localhost:5433/helpdesk_test
+      REQUIRE_TEST_DATABASE: '1'
+      PYTHONUTF8: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-          cache: pip
-          cache-dependency-path: requirements.lock.txt
-      - run: python -m pip install -r requirements.lock.txt
-      - run: python -m pytest -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install uv==0.13.7
+      - run: uv sync --locked
+      - run: uv run --locked pytest -q --junitxml=results.xml
+      - name: Build and smoke-test Docker deployment
+        env:
+          SECRET_KEY: ci-only-signing-key-not-for-production-0123456789
+          POSTGRES_PASSWORD: ci-only-password
+          DB_PORT: '5544'
+          APP_PORT: '8017'
+        run: |
+          docker compose -p helpdesk-ci up -d --build --wait --wait-timeout 180
+          curl --fail http://localhost:8017/api/health
+          curl --fail http://localhost:8017/app/
+          uv run python -m app.scripts.db_backup backup --project helpdesk-ci
+          docker compose -p helpdesk-ci down -v
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: results.xml

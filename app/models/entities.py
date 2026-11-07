@@ -1,69 +1,73 @@
-"""SQLAlchemy entities: persistence representation of the HelpDesk domain."""
-from app.core.time import utcnow
+from dataclasses import dataclass, field
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.core.database import Base
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    email: Mapped[str] = mapped_column(String(120), unique=True)
-    name: Mapped[str] = mapped_column(String(100))
-    role: Mapped[str] = mapped_column(String(20))
-    password_hash: Mapped[str] = mapped_column(String(255))
+from app.domain.clock import now
+from app.models.comments import Comment
+from app.models.enums import Role, TicketStatus
 
 
-class Ticket(Base):
-    __tablename__ = "tickets"
+# 22/10/2026 - Los ids de todas las entidades son None hasta que el repositorio
+# guarda el objeto: PostgreSQL asigna la llave primaria, no Python.
+@dataclass
+class HistoryEvent:
+    # None hasta que el repositorio guarda el objeto: la base asigna la llave.
+    id: int | None = field(default=None, kw_only=True)
+    ticket_id: int
+    actor_id: int
+    event_type: str
+    detail: str = ""
+    created_at: datetime = field(default_factory=now)
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(160))
-    description: Mapped[str] = mapped_column(Text)
-    category: Mapped[str] = mapped_column(String(50))
-    priority: Mapped[str] = mapped_column(String(30))
-    status: Mapped[str] = mapped_column(String(30), default="Open")
-    requester_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    due_at: Mapped[datetime] = mapped_column(DateTime)
-    requester: Mapped[User] = relationship(User, foreign_keys=[requester_id])
-    assignee: Mapped[User | None] = relationship(User, foreign_keys=[assignee_id])
+    @property
+    def action(self) -> str:
+        return self.event_type
 
-
-class Comment(Base):
-    __tablename__ = "comments"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id"))
-    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    body: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    author: Mapped[User] = relationship(User)
+    @property
+    def details(self) -> str:
+        return self.detail
 
 
-class History(Base):
-    __tablename__ = "history"
+@dataclass
+class User:
+    # None hasta que el repositorio guarda el objeto: la base asigna la llave.
+    id: int | None = field(default=None, kw_only=True)
+    name: str
+    email: str
+    role: Role = Role.REQUESTER
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id"))
-    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    event_type: Mapped[str] = mapped_column(String(50))
-    detail: Mapped[str] = mapped_column(String(255))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    actor: Mapped[User] = relationship(User)
+    @property
+    def is_staff(self) -> bool:
+        return Role(self.role) in {
+            Role.TECHNICIAN,
+            Role.SUPERVISOR,
+            Role.ADMINISTRATOR,
+        }
 
 
-class Article(Base):
-    __tablename__ = "articles"
+# 22/10/2026 - Ticket suma due_at (lo calcula el trigger SLA de la base) y usa
+# el reloj unico del dominio para created_at/updated_at.
+@dataclass
+class Ticket:
+    # None hasta que el repositorio guarda el objeto: la base asigna la llave.
+    id: int | None = field(default=None, kw_only=True)
+    title: str
+    description: str
+    category: str
+    priority: str
+    requester_id: int
+    status: TicketStatus = TicketStatus.OPEN
+    assignee_id: int | None = None
+    comments: list[Comment] = field(default_factory=list)
+    history: list[HistoryEvent] = field(default_factory=list)
+    created_at: datetime = field(default_factory=now)
+    updated_at: datetime = field(default_factory=now)
+    # Lo calcula el trigger de la base segun la prioridad: Python solo lo lee.
+    due_at: datetime | None = None
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(160))
-    body: Mapped[str] = mapped_column(Text)
-    category: Mapped[str] = mapped_column(String(50))
-    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    @property
+    def is_open(self) -> bool:
+        return self.status not in (TicketStatus.CLOSED, TicketStatus.CANCELLED)
+
+    @property
+    def is_assigned(self) -> bool:
+        return self.assignee_id is not None
