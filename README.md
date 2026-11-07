@@ -46,7 +46,7 @@ cp .env.example .env             # completa SECRET_KEY y POSTGRES_PASSWORD ANTES
 python -c "import secrets; print(secrets.token_urlsafe(48))"   # genera tu SECRET_KEY y pegala en .env
 docker compose up -d db          # PostgreSQL 16 en el puerto 5433 (compose ya exige ambas variables)
 uv sync                          # dependencias del proyecto
-uv run python -m app.scripts.set_password requester@example.com    # el seed trae hashes de relleno
+uv run --env-file .env python -m app.scripts.set_password requester@example.com    # el seed trae hashes de relleno
 uv run uvicorn app.main:app --reload --env-file .env
 ```
 
@@ -111,7 +111,7 @@ El mismo servidor entrega los archivos del cliente en `/app` (ver `docs/decision
 
 ```bash
 docker compose up -d db                       # PostgreSQL
-uv run python -m app.scripts.set_password requester@example.com   # dale una contrasena al usuario con el que vas a ingresar
+uv run --env-file .env python -m app.scripts.set_password requester@example.com   # dale una contrasena al usuario con el que vas a ingresar
 uv run uvicorn app.main:app --reload --env-file .env
 ```
 

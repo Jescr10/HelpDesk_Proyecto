@@ -30,7 +30,12 @@ Se importó `developer.zip` como referencia de implementación de las semanas 7 
 ## Evidencia
 
 - JavaScript: 22 pruebas aprobadas localmente.
-- Pruebas Python locales y CI: ver actualización de resultados al finalizar la verificación.
+- Windows / Python 3.13: **253 aprobadas**, 3 omitidas por requerir `time.tzset` de POSIX; 179 de integración excluidas de la ejecución local sin PostgreSQL.
+- GitHub Actions / Linux / PostgreSQL 16 + pgvector: **435 aprobadas**, sin omisiones. Incluye autenticación, roles, persistencia, transacciones, avisos, cliente web y recuperación ante fallos.
+- Docker: imagen construida, servicios saludables, `/api/health` con 200 y `{"status":"ok"}`, y `/app/` servido correctamente.
+- Respaldo real `pg_dump` y restauración `pg_restore` completados en el proyecto desechable `helpdesk-ci`; salud de la aplicación verificada después de restaurar.
+- [Ejecución exitosa en GitHub Actions](https://github.com/Jescr10/HelpDesk_Proyecto/actions/runs/42330813846), código verificado en `6bbc2db`. Los cambios posteriores de esta entrega solo documentan el resultado y corrigen un ejemplo de comando.
+- Advertencia no bloqueante: Starlette avisa que su integración con `httpx` está deprecada; se conservan las versiones del lock de referencia para esta entrega.
 - Docker no está instalado en la computadora local; su comprobación se ejecuta en el runner de GitHub Actions.
 
 Las capturas de `docs/img/semana16` proceden del ZIP de referencia; no son capturas nuevas de esta actualización.

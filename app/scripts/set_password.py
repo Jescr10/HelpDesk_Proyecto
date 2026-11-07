@@ -1,6 +1,6 @@
 """22/10/2026 - Asigna la contrasena de un usuario (el seed trae hashes de relleno).
 
-    uv run python -m app.scripts.set_password usuario@umg.edu
+    uv run --env-file .env python -m app.scripts.set_password usuario@umg.edu
 
 Pide la contrasena por teclado (no se ve ni queda en el historial del shell).
 `--password` existe para automatizar, pero la contrasena quedaria visible en el
