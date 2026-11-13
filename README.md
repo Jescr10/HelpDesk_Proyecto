@@ -1,5 +1,9 @@
 # HelpDesk_Proyecto · referencia del curso
 
+## Módulo de tareas por ticket (12 de noviembre de 2026)
+
+La rama local `rama-2` incorpora tareas de soporte en el detalle del ticket: agregar, consultar y completar, con persistencia SQLAlchemy y permisos de la persona asignada. La [ficha de entrega y evidencia](docs/evidencia/tareas/ENTREGA.md) contiene los archivos, resultados de pruebas, capturas y comandos para ejecutar la demo aislada en `http://127.0.0.1:8001/app/`. La base habitual no se migra al iniciar la aplicación.
+
 HelpDesk EDU: proyecto de clase de Programacion II (Python). Se construye semana a semana
 sobre una arquitectura en capas: modelos de dominio, servicios, repositorios y, desde la
 semana 14, una API REST con FastAPI.

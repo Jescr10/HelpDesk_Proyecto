@@ -1,0 +1,12 @@
+{
+  "result": "PASS",
+  "ticket_id": 8,
+  "checks": [
+    "crear tres tareas desde formulario",
+    "completar desde pantalla",
+    "persistencia después de recargar",
+    "solicitante solo consulta",
+    "móvil sin desbordamiento",
+    "sin errores JavaScript"
+  ]
+}
