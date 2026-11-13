@@ -30,6 +30,7 @@ export class ApiError extends Error {
 // 22/10/2026 - Mensajes en espanol para los errores de dominio que la API redacta en ingles. Son los que
 // el usuario puede provocar con un uso normal; el resto cae en el mensaje generico de su codigo HTTP.
 const KNOWN_MESSAGES = {
+  "Only assigned support staff can manage tasks": "Solo la persona de soporte asignada puede administrar las tareas.",
   "ticket is closed or cancelled": "El ticket está cerrado o cancelado y ya no admite cambios.",
   "assignee must be support staff": "Solo se puede asignar a personal de soporte (técnico o supervisor).",
   "comment body is required": "Escribe un comentario antes de enviarlo.",
@@ -173,6 +174,15 @@ export async function request(method, path, { query, body, auth = true } = {}) {
 // 22/10/2026 - Un metodo por caso de uso de la API, con el nombre del negocio. Las paginas leen como una receta:
 // `await api.assign(5, 3)` en vez de armar URLs y cuerpos a mano.
 export const api = {
+  async listTasks(id) {
+    return (await request("GET", `/tickets/${id}/tasks`)).data;
+  },
+  async addTask(id, descripcion) {
+    return (await request("POST", `/tickets/${id}/tasks`, { body: { descripcion } })).data;
+  },
+  async completeTask(id, taskId) {
+    return (await request("POST", `/tickets/${id}/tasks/${taskId}/complete`)).data;
+  },
   async login(email, password) {
     const { data } = await request("POST", "/auth/login", { body: { email, password }, auth: false });
     return data;

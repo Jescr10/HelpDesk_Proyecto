@@ -92,6 +92,15 @@ CREATE TABLE articles (
 );
 
 CREATE INDEX idx_tickets_status ON tickets(status);
+-- Módulo de tareas: se crea al inicializar una base nueva, nunca al arrancar la API.
+CREATE TABLE ticket_tasks (
+  id SERIAL PRIMARY KEY,
+  ticket_id INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+  descripcion VARCHAR(500) NOT NULL CHECK (length(trim(descripcion)) > 0),
+  completada BOOLEAN NOT NULL DEFAULT FALSE,
+  fecha_creacion TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX ix_ticket_tasks_ticket_id ON ticket_tasks(ticket_id);
 CREATE INDEX idx_tickets_assignee ON tickets(assignee_id);
 CREATE INDEX idx_comments_ticket ON comments(ticket_id);
 CREATE INDEX idx_history_ticket ON history(ticket_id);

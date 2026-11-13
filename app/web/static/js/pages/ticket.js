@@ -262,11 +262,56 @@ function renderHistory(ticket) {
   );
 }
 
-function renderTicket(ticket) {
+function renderTasks(ticket, tasks) {
+  const editable = isStaff(user) && user.id === ticket.assignee_id && isTicketOpen(ticket);
+  const completed = tasks.filter((task) => task.completada).length;
+  const progress = el("p", { className: "text-body-secondary", text: tasks.length
+    ? `${completed} de ${tasks.length} tareas completadas · ${Math.round(completed / tasks.length * 100)} %`
+    : "Aún no hay tareas registradas para este ticket." });
+  const list = el("ul", { className: "list-group list-group-flush mb-3" }, ...tasks.map((task) => {
+    const button = editable && !task.completada
+      ? el("button", { className: "btn btn-outline-success btn-sm", text: "Completar",
+        attrs: { type: "button", "aria-label": `Completar: ${task.descripcion}` } }) : null;
+    if (button) button.addEventListener("click", () => runAction(button, "Guardando…",
+      () => api.completeTask(ticket.id, task.id), "Tarea completada.", { focusId: "tasks-title" }));
+    return el("li", { className: "list-group-item d-flex flex-wrap align-items-center justify-content-between gap-3" },
+      el("div", { className: "flex-grow-1" },
+        el("p", { className: `mb-1 pre-wrap text-break ${task.completada ? "text-decoration-line-through text-body-secondary" : "fw-medium"}`, text: task.descripcion }),
+        el("small", { className: "text-body-secondary", text: formatDateTime(task.fecha_creacion) })),
+      badge(task.completada ? "Completada" : "Pendiente", task.completada ? "text-bg-success" : "text-bg-secondary"), button);
+  }));
+  let form = null;
+  if (editable) {
+    const input = el("textarea", { className: "form-control", attrs: {
+      id: "task-description", name: "descripcion", rows: "2", maxlength: "500", required: true,
+      placeholder: "Ejemplo: revisar las conexiones del equipo" } });
+    const button = el("button", { className: "btn btn-primary mt-2", text: "Agregar tarea", attrs: { type: "submit" } });
+    form = el("form", { attrs: { novalidate: true } },
+      el("label", { className: "form-label", text: "Nueva tarea", attrs: { for: "task-description" } }), input,
+      el("div", { className: "form-text", text: "Describe una actividad concreta. Máximo 500 caracteres." }), button);
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearFieldErrors(form);
+      if (!input.value.trim() || input.value.trim().length > 500) {
+        showFieldErrors(form, { descripcion: "Escribe una tarea de entre 1 y 500 caracteres." });
+        return;
+      }
+      await runAction(button, "Guardando…", () => api.addTask(ticket.id, input.value.trim()), "Tarea agregada.",
+        { form, focusId: "tasks-title" });
+    });
+  }
+  return card("tasks-title", "Tareas de soporte", progress, list, form,
+    !editable ? el("p", { className: "small text-body-secondary mb-0", text: !isTicketOpen(ticket)
+      ? "El ticket está cerrado o cancelado. Las tareas se conservan para consulta."
+      : "Puedes consultar el progreso. Solo la persona de soporte asignada puede administrar las tareas." }) : null);
+}
+
+function renderTicket(ticket, tasks) {
   pageTitle.textContent = `Ticket #${ticket.id}`;
   document.title = `Ticket #${ticket.id} · HelpDesk EDU`;
   view.replaceChildren(
     el("div", { className: "row g-3" }, el("div", { className: "col-lg-8" }, renderSummary(ticket)), el("div", { className: "col-lg-4" }, renderActions(ticket))),
+    renderTasks(ticket, tasks),
     el("div", { className: "row g-3" }, el("div", { className: "col-lg-8" }, renderComments(ticket)), el("div", { className: "col-lg-4" }, renderHistory(ticket))),
   );
 }
@@ -278,7 +323,8 @@ function renderTicket(ticket) {
 async function loadTicket(focusId = null) {
   view.replaceChildren(loadingIndicator("Cargando ticket…"));
   try {
-    renderTicket(await api.getTicket(ticketId));
+    const [ticket, tasks] = await Promise.all([api.getTicket(ticketId), api.listTasks(ticketId)]);
+    renderTicket(ticket, tasks);
     (document.getElementById(focusId ?? "") ?? document.getElementById("page-title")).focus();
   } catch (error) {
     view.replaceChildren();

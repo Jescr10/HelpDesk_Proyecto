@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
 from app.api.errors import register_error_handlers
-from app.api.routes import auth, notifications, system, tickets, users
+from app.api.routes import auth, notifications, system, tasks, tickets, users
 from app.core.config import get_secret_key, get_settings
 from app.core.database import Database
 from app.core.logging_config import configure_logging
@@ -93,6 +93,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     api.include_router(system.router)
     api.include_router(auth.router)
     api.include_router(tickets.router)
+    api.include_router(tasks.router)
     api.include_router(users.router)
     api.include_router(notifications.router)
     app.include_router(api)
